@@ -3,7 +3,7 @@ import GUI from 'https://cdn.jsdelivr.net/npm/lil-gui@0.21/+esm';
 
 const gui = new GUI({ title: 'Court Tracker' });
 
-// --- 3D Scene Setup ---
+// ThreeJS Scene Setup
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.rotation.order = "YXZ";
@@ -13,7 +13,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setAnimationLoop(animate);
 document.body.appendChild(renderer.domElement);
 
-// --- Video Overlay Setup ---
+// Video Overlay
 const video = document.createElement('video');
 video.style.position = 'absolute';
 video.style.top = '0';
@@ -42,15 +42,15 @@ fileInput.addEventListener('change', (event) => {
   }
 });
 
-// --- Flexible Court Setup ---
+// Court Object Setup
 const courtGeo = new THREE.BufferGeometry();
 const courtMat = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 2 });
 const court = new THREE.LineSegments(courtGeo, courtMat);
 scene.add(court);
 
 const court3DCorners = [ new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3() ];
-let currentCourtWidth = 6.1;  // Official 6.1m width
-let currentCourtLength = 13.4; // Official 13.4m length
+const currentCourtWidth = 6.1;
+const currentCourtLength = 13.4;
 
 const properties = {
   overlayVideo: true,
@@ -58,29 +58,23 @@ const properties = {
   playing: true,
   currentTime: 0,
   
-  // Camera State
+  // camera states
   camX: 0, camY: 6, camZ: 14,
   camPitch: -0.35, camYaw: 0, camRoll: 0,
   fov: 45, 
   
-  // App & Court Settings
   showPins: true,
-  courtType: 'Doubles (Outer Lines)',
-  stretchTop: 1.0,     
-  stretchBottom: 1.0,  
-  stretchLength: 1.0,
   resetPins: () => resetAlignment()
 };
 
 function updateCourtGeometry() {
-    const wTop = currentCourtWidth * properties.stretchTop;
-    const wBottom = currentCourtWidth * properties.stretchBottom;
-    const l = currentCourtLength * properties.stretchLength;
+    const w = currentCourtWidth;
+    const l = currentCourtLength;
 
-    court3DCorners[0].set(-wTop / 2, 0, -l / 2); // TL
-    court3DCorners[1].set(wTop / 2, 0, -l / 2);  // TR
-    court3DCorners[2].set(wBottom / 2, 0, l / 2);   // BR
-    court3DCorners[3].set(-wBottom / 2, 0, l / 2);  // BL
+    court3DCorners[0].set(-w / 2, 0, -l / 2); // TL
+    court3DCorners[1].set(w / 2, 0, -l / 2);  // TR
+    court3DCorners[2].set(w / 2, 0, l / 2);   // BR
+    court3DCorners[3].set(-w / 2, 0, l / 2);  // BL
 
     const points = [
         court3DCorners[0], court3DCorners[1], 
@@ -92,9 +86,9 @@ function updateCourtGeometry() {
 }
 updateCourtGeometry();
 
-// --- Footstep Tracker State & UI ---
+// data collection tracker states
 let recordedFootsteps = [];
-let footStepState = 'IDLE'; // 'IDLE', 'WAITING_LEFT', 'WAITING_RIGHT', 'READY_CONFIRM'
+let footStepState = 'IDLE';
 let pendingLeft = null;
 let pendingRight = null;
 
@@ -102,7 +96,7 @@ const footDialog = document.createElement('div');
 footDialog.id = 'foot-dialog';
 footDialog.style.position = 'absolute';
 footDialog.style.top = '20px';
-footDialog.style.left = '20px'; // Positioned on the left side
+footDialog.style.left = '20px';
 footDialog.style.width = '260px';
 footDialog.style.background = 'rgba(15, 15, 25, 0.9)';
 footDialog.style.border = '2px solid #1e90ff';
@@ -204,7 +198,6 @@ exportCsvBtn.addEventListener('click', () => {
     }
     let csvContent = "time,leftfootx,leftfooty,rightfootx,rightfooty\n";
     recordedFootsteps.forEach(step => {
-        // Multiply by -1 to invert the sign of the y/z coordinate
         const leftY = -step.left.z;
         const rightY = -step.right.z;
 
@@ -218,6 +211,7 @@ exportCsvBtn.addEventListener('click', () => {
     a.click();
     URL.revokeObjectURL(url);
 });
+
 function updateRecordedListUI() {
     listCountSpan.innerText = recordedFootsteps.length;
     recordedListDiv.innerHTML = '';
@@ -245,7 +239,7 @@ function updateRecordedListUI() {
     });
 }
 
-// --- Minimap Setup ---
+// minimap
 const minimapWidth = 140;
 const minimapHeight = Math.round(minimapWidth * (currentCourtLength / currentCourtWidth)); 
 
@@ -339,7 +333,6 @@ function drawMinimap(cursorX = null, cursorZ = null) {
 
     if (cursorX !== null && cursorZ !== null) {
         const px = ((cursorX + halfW) / (halfW * 2)) * miniCanvas.width;
-        // Shift pz upward by the radius (4px) so the bottom edge/tip of the circle marks the exact point
         const pz = ((cursorZ + halfL) / (halfL * 2)) * miniCanvas.height - 4;
 
         if (px >= 0 && px <= miniCanvas.width && pz >= -4 && pz <= miniCanvas.height) {
@@ -355,13 +348,13 @@ function drawMinimap(cursorX = null, cursorZ = null) {
 }
 drawMinimap();
 
-// --- Raycasting & Click Handling ---
+// raycasting
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const courtPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
 window.addEventListener('pointermove', (e) => {
-    // Offset Y by 12px upwards so the tip of the pointer/cursor matches the raycast hit
+    // offset so the point is at tip of cursor rather than middle
     const adjustedY = e.clientY - 2;
 
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -409,7 +402,7 @@ window.addEventListener('click', (e) => {
     }
 });
 
-// --- Target Visualizer & Alignment Handles ---
+// target on minimap
 const svgNS = "http://www.w3.org/2000/svg";
 const svg = document.createElementNS(svgNS, "svg");
 svg.style.position = 'absolute';
@@ -527,14 +520,13 @@ function resetAlignment() {
     properties.camX = 0; properties.camY = 6; properties.camZ = 14;
     properties.camPitch = -0.35; properties.camYaw = 0; properties.camRoll = 0;
     properties.fov = 45;
-    properties.stretchTop = 1.0; properties.stretchBottom = 1.0; properties.stretchLength = 1.0;
     
     updateTransform();
     updateCourtGeometry();
     solveCameraFromPins();
 }
 
-// --- Solver & GUI ---
+// camera setting solver
 function solveCameraFromPins() {
   const rect = renderer.domElement.getBoundingClientRect();
   const targetNDCs = handles.map(pin => {
@@ -646,26 +638,7 @@ alignFolder.add(properties, 'showPins').name('Show Targeting Pins').onChange(v =
 alignFolder.add(properties, 'resetPins').name('Reset Pins');
 alignFolder.add(properties, 'fov', 5, 140, 1).name('Camera FOV').listen().onChange(() => solveCameraFromPins());
 
-const courtFolder = gui.addFolder('3. Physical Court Deformation');
-courtFolder.add(properties, 'courtType', ['Doubles (Outer Lines)', 'Singles (Inner Lines)']).name('Court Type').onChange(v => {
-    currentCourtWidth = v.includes('Doubles') ? 6.1 : 5.18;
-    updateCourtGeometry();
-    solveCameraFromPins();
-});
-courtFolder.add(properties, 'stretchTop', 0.5, 2.0, 0.01).name('Cheat: Top Width').listen().onChange(() => {
-    updateCourtGeometry();
-    solveCameraFromPins();
-});
-courtFolder.add(properties, 'stretchBottom', 0.5, 2.0, 0.01).name('Cheat: Bottom Width').listen().onChange(() => {
-    updateCourtGeometry();
-    solveCameraFromPins();
-});
-courtFolder.add(properties, 'stretchLength', 0.5, 2.0, 0.01).name('Cheat: Length').listen().onChange(() => {
-    updateCourtGeometry();
-    solveCameraFromPins();
-});
-
-const camFolder = gui.addFolder('4. Raw Camera Data');
+const camFolder = gui.addFolder('3. Raw Camera Data');
 camFolder.add(properties, 'camX', -30, 30).listen().onChange(updateTransform).name('X');
 camFolder.add(properties, 'camY', 0, 30).listen().onChange(updateTransform).name('Y');
 camFolder.add(properties, 'camZ', -20, 100).listen().onChange(updateTransform).name('Z');
